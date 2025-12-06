@@ -61,4 +61,45 @@ analytical report also often using aggregation, like total sales per date range 
 5. **No partition**  
 Partition is important, so it won't scan all rows, example partition by order_date, the table will scan only needed row in partition
 
+#### Index Recommendations
+5 indexes that would improve common query patterns
 
+1.   ```
+     CREATE INDEX idx_orders_customer_id
+     ON orders(customer_id);
+     ```
+     **Reason**: when Join between `orders` and `customers` becomes faster, foq queries sales per customer, qty order per customer etc.
+
+2.   ```
+     CREATE INDEX idx_orders_order_date
+     ON orders(order_date DESC);
+     ```
+     **Reason**: faster for date range based queries.
+
+3.   ```
+     CREATE INDEX idx_order_items_order_id
+     ON order_items(order_id);
+     ```
+     **Reason**: when Join between `order_items` and `orders` becomes faster, for queries detailed orders, qty item per order etc.
+
+4.   ```
+     CREATE INDEX idx_order_items_product_id
+     ON order_items(product_id);
+     ```
+     **Reason**: when Join between `order_items` and `products` becomes faster, for queries detailed orders with product information.
+
+5.   ```
+     CREATE INDEX idx_orders_status_order_date
+     ON orders(status, order_date DESC);
+     ```
+     **Reason**: if the user often query by date range and breakdown by order status
+
+
+
+#### Schema Improvements
+1.  **Use ENUM for `status` in table orders**  
+   for column that is use fix category values we can use enum to prevent invalid or inconsistent data, also can save storage
+2. **Add partition to `order_date` column in table orders**   
+when partition the table, query become faster for spesific date range, and easier to maintenance (example for drop and replacing same partition)
+3. **Add materialized views for monthly reports** 
+for repeating reports like trend sales per month, top customer or top products. we can use materialized view , it save the result of query, without run/scan query manually, so the reports can load directly and reduce CPU load for repeated process.
