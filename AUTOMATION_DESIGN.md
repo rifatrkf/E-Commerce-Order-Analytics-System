@@ -41,3 +41,44 @@ How it works step by step:
 
 This approach keeps the system lightweight, low-cost, and easy to maintain.
 It does not need complex infrastructure at the beginning, but can still grow later if the workload increases.
+
+
+3. **Technology Choices**
+
+- PostgreSQL
+- Go CL
+- Cron Job / Apache Airflow
+- AWS S3 / GCS
+- 
+For the database, I will continue using **PostgreSQL**, because the system already uses it and it supports all the queries from Part 1.
+
+The reporting process will use my **Go command-line tool** from Part 2, since it can connect to PostgreSQL and export reports in JSON.
+For scheduling, I plan to start with a **cron job** on Linux. Cron is lightweight and reliable for time-based tasks.
+If the company later needs more control or tracking, we can switch to **Apache Airflow or another workflow tool**.
+
+Report files will be saved locally first, but for larger use, I would move them to **AWS S3** or **Goggle Cloud Storage** for better storage and sharing.
+For team notifications, **Slack or simple email** alerts can be added easily using an API.
+Finally, all logs can be printed to the console or written to a local log file for quick review.
+
+4. **Prioritization**  
+  If I need to choose which automation to build first, I will start with the **Low Stock Alert**.
+  This one runs every day and has the biggest impact, because if stock runs out, the business can lose sales.
+  Next, I will automate the **Weekly Sales Report**, since it is also repeated often but not as critical as stock.
+  The **Monthly Revenue by Category** and **Customer Churn Report** can come next because they are less frequent.
+  
+  Priority order:
+  
+    1. Low stock alert (daily)
+    2. Weekly sales report
+    3. Monthly revenue by category
+    4. Customer churn risk analysis
+
+5. **Scalability**  
+At first, this system can run on one small server using cron jobs.
+If later the business needs to run so much reports (for example 15 or more), I can make the system more scalable.
+Some ideas for scaling:
+- Use database connection pooling to handle multiple queries safely.
+- Add retries and error handling so failed reports can re-run automatically.
+- Move from cron to a workflow manager like Airflow if the job list becomes large.
+
+This approach can grow step by step. It starts simple, but can expand without changing the whole design.
