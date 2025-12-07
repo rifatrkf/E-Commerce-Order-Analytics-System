@@ -283,3 +283,74 @@ SELECT
     END AS segment
 FROM rfm_segmented
 ORDER BY rfm_score DESC, monetary DESC;
+
+-- Query 4: Advanced Sales Trend Analysis Create a query that analyzes sales trends and anomalies
+WITH 
+date_series AS (
+    -- Query that generate one row per day for last 90 days (including today)
+    -- Create Start date and end_date first
+    SELECT
+        (CURRENT_DATE - INTERVAL '89 days')::date AS start_date,
+        CURRENT_DATE::date AS end_date
+),
+all_days AS(
+    -- generate one row per day
+    -- why make this series? in order to make sure there is no miss day in tracking
+    SELECT
+        generate_series(
+            (SELECT start_date FROM date_series),
+            (SELECT end_date FROM date_series),
+            INTERVAL '1 day'
+        )::date AS dt
+),
+daily_sales AS(
+  SELECT
+    DATE(order_date) AS order_date,
+    COUNT(*) as total_orders,
+    COALESCE(SUM(total_amount),0) AS total_revenue
+  FROM orders
+  WHERE status = 'completed'
+    AND order_date BETWEEN (SELECT start_date FROM date_series) AND (SELECT end_date FROM date_series)
+  GROUP BY 1
+),
+daily_with_complete_date AS (
+    SELECT
+        d.dt AS sales_date,
+        COALESCE(ds.total_orders, 0)   AS total_orders,
+        COALESCE(ds.total_revenue, 0)  AS total_revenue
+    FROM all_days d
+    LEFT JOIN daily_sales ds ON ds.order_day = d.dt
+),
+daily_with_7_days_moving_average AS)
+  SELECT
+    sales_date,
+    total_orders,
+    total_revenue,
+    AVG(total_revenue) OVER (ORDER BY sales_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as avg_7_days_revenue,
+    AVG(total_orders) OVER (ORDER BY sales_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) as avg_7_days_orders,
+  FROM daily_with_complete_date
+)
+SELECT
+    sales_date,
+    total_orders,
+    total_revenue,
+    avg_7_days_revenues,
+    avg_7_days_orders,
+    CASE
+        -- Make sure no div by 0
+        WHEN avg_7_days_revenue = 0 THEN NULL
+        ELSE ROUND((total_revenue - avg_7_days_revenue)/avg_7_days_revenue * 100,2)
+    END AS current_date_revenue_vs_7_days_avg_pct,
+    TO_CHAR(sales_date, 'Dy') AS day_of_week,
+    CASE
+        WHEN avg_7_days_revenue = 0 THEN 'Normal'
+        WHEN ABS((total_revenue - avg_7_days_revenue)/ avg_7_days_revenue * 100) > 30 THEN 'Anomaly'
+        ELSE 'Normal'
+    END AS anomaly_flag
+FROM daily_with_7_days_moving_average
+ORDER BY sales_date;
+
+-- Query 5: Inventory Turnover and Stock Analysis
+
+
+
