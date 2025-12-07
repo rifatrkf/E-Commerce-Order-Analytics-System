@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"go-example/api"     // new package for REST API integration
+	"go-example/api"
 	"go-example/db"
 	"go-example/reports"
 	"go-example/utils"
