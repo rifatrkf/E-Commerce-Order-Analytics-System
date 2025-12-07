@@ -120,7 +120,7 @@ func SendReport(summary *SalesSummary) error {
 		return fmt.Errorf("API returned an error: %s", resp.Status)
 	}
 
-	fmt.Println("✅ Report successfully sent to BI platform")
+	fmt.Println("Report successfully sent to BI platform")
 	return nil
 }
 
