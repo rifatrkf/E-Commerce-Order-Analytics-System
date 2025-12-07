@@ -17,7 +17,7 @@ func main() {
 	// Command-line flags
 	report := flag.String("report", "", "Report type (customer_cohort, rfm, or daily_sales_api)")
 	output := flag.String("output", "reports/", "Output folder path")
-	date := flag.String("date", time.Now().Format("2006-01-02"), "Report date (YYYY-MM-DD)") // new for API feature
+	date := flag.String("date", time.Now().Format("2006-01-02"), "Report date (YYYY-MM-DD)")
 	flag.Parse()
 
 	if *report == "" {
