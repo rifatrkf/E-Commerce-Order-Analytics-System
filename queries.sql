@@ -187,3 +187,99 @@ ORDER BY
     pr.category,
     pr.revenue_rank;
 
+
+
+-- Query 3: Customer Segmentation with RFM Analysis
+
+WITH
+customer_orders AS (
+  SELECT
+    customer_id,
+    order_date,
+    total_amount
+  FROM orders
+  WHERE status = 'completed'
+),
+customer_rfm_base AS (
+  SELECT
+    c.id AS customer_id
+    c.name,
+    c.email,
+    --Recency: days since last order
+    (CURRENT_DATE - MAX(co.order_date)::date) AS recency_days,
+    -- Frequency: Total number of completed orders
+    COUNT(*) AS frequency
+    -- Monetary: Total lifetime revenue
+    SUM(co.total_anount) AS monetary
+  FROM customers c
+  INNER JOIN customer_orders co ON co.customer_id = c.id 
+  GROUP BY 1,2,3
+),
+monetary_quintiles AS (
+  SELECT
+    customer_id,
+    name,
+    email,
+    recency_days,
+    frequency,
+    monetary,
+    NTILE(5) OVER (ORDER BY monetary) AS monetary_ntile
+  FROM customer_rfm_base
+),
+rfm_score AS (
+  SELECT
+    customer_id,
+    name,
+    email,
+    recency_days,
+    frequency,
+    monetary,
+    -- Recency score
+    CASE
+        WHEN recency_days <= 30 THEN 5
+        WHEN recency_days <= 90 THEN 4
+        WHEN recency_days <= 180 THEN 3
+        WHEN recency_days <= 365 THEN 2
+        ELSE 1
+    END AS recency_score,
+    -- Frequency score
+    CASE
+        WHEN frequency >= 20 THEN 5
+        WHEN frequency >= 11 THEN 4
+        WHEN frequency >= 6  THEN 3
+        WHEN frequency >= 3  THEN 2
+        ELSE 1
+    END AS frequency_score,
+    -- Monetary score, convert NTILE first (1=lowest,5=highest) to score
+    (6 - monetary_ntile) AS monetary_score
+FROM monetary_quintiles
+),
+rfm_segment_based_score (
+  SELECT
+    customer_id,
+    name,
+    email,
+    recency_days,
+    frequency,
+    monetary,
+    recency_score,
+    frequency_score,
+    monetary_score,
+    (recency_score + frequency_score + monetary_score) AS rfm_score
+  FROM rfm_score
+)
+SELECT
+    name AS customer_name,
+    email,
+    recency_days,
+    frequency AS frequency_count,
+    monetary AS monetary_value,
+    rfm_score,
+    CASE
+        WHEN rfm_score >= 12 THEN 'Champions'
+        WHEN rfm_score >= 9  THEN 'Loyal'
+        WHEN rfm_score >= 6  THEN 'At Risk'
+        ELSE 'Lost'
+    END AS segment
+FROM rfm_segmented
+ORDER BY rfm_score DESC, monetary DESC;
